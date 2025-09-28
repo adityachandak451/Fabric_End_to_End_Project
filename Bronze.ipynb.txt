@@ -1,0 +1,32 @@
+import requests
+import datetime
+from pyspark.sql import SparkSession
+
+
+# Step 1: Fetch data from API
+
+url = "https://api.covid19api.com/summary"
+response = requests.get(url)
+data = response.json()
+
+# Step 2: Extract countries data list
+
+countries_data = data['Countries']
+
+# Step 3: Add ingestion timestamp
+
+ingest_time = datetime.datetime.utcnow().isoformat()
+for record in countries_data:
+    record['ingest_time'] = ingest_time
+
+# Step 4: Create Spark DataFrame
+
+df_bronze = spark.createDataFrame(countries_data)
+
+
+# Step 5: Write raw data to bronze layer as Delta files
+
+bronze_path = "/bronze/covid/"
+df_bronze.write.mode("overwrite").format("delta").save(bronze_path)
+
+print(f"Bronze raw data saved at: {bronze_path}")
